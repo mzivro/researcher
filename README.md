@@ -85,10 +85,23 @@ Markdown + PDF reports
 
 ## Installation
 
+Clone the repository:
 ```bash
 git clone https://github.com/mzivro/researcher.git
 cd researcher
 
+pip install -r requirements.txt
+```
+
+Create a virtual environment:
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux / MacOS
+venv\Scripts\activate     # Windows
+```
+
+Install dependencies:
+```bash
 pip install -r requirements.txt
 ```
 
@@ -128,7 +141,7 @@ streamlit run src/app.py
 4. Execute the plan
 5. Get a summarized PDF report
 
-You can also write your own plan steps without generating them.
+You can also write your own plan without generating him.
 
 ---
 
