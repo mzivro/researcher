@@ -89,8 +89,6 @@ Clone the repository:
 ```bash
 git clone https://github.com/mzivro/researcher.git
 cd researcher
-
-pip install -r requirements.txt
 ```
 
 Create a virtual environment:
