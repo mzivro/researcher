@@ -20,6 +20,7 @@ class Researcher:
     run()
         Launch the application UI.
     """
+
     def __init__(self):
         """
         Initialize application state and required components.
@@ -88,9 +89,7 @@ class Researcher:
 
         logger.enabled = st.checkbox(
             "Enable logging",
-            help=(
-                "Save debug logs in log file"
-            ),
+            help=("Save debug logs in log file"),
         )
 
     def _plan_editor_section(self):

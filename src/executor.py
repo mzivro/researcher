@@ -1,6 +1,8 @@
+from langchain_community.utilities.wikipedia import WikipediaAPIWrapper
 from langchain_classic.agents import create_react_agent, AgentExecutor
 from langchain_community.agent_toolkits.load_tools import load_tools
 from langchain_openai import ChatOpenAI
+from langchain_core.tools import Tool
 from langchain_classic import hub
 from settings import settings
 from logger import logger
@@ -21,6 +23,7 @@ class Executor:
     agent_executor : AgentExecutor
         Configured LangChain executor responsible for running the agent.
     """
+
     def __init__(self):
         """
         Initialize the Executor with LLM, tools, and agent configuration.
@@ -43,9 +46,15 @@ class Executor:
             temperature=settings.openai_executor_temperature,
         )
 
-        tools = load_tools(
-            tool_names=["ddg-search", "arxiv", "wikipedia", "llm-math"], llm=llm
+        tools = load_tools(tool_names=["ddg-search", "arxiv", "llm-math"], llm=llm)
+
+        wiki_tool = Tool(
+            name="wikipedia",
+            func=self._safe_wikipedia_run,
+            description="Search Wikipedia for general knowledge. Input should be a search query.",
         )
+
+        tools.append(wiki_tool)
 
         prompt = hub.pull("hwchase17/react")
 
@@ -84,6 +93,27 @@ class Executor:
             plan_with_results.append(plan[i])
 
         return plan_with_results
+
+    def _safe_wikipedia_run(self, query: str) -> str:
+        """
+        Safely executes wikipedia query with fallbacks.
+
+        Parameters
+        ----------
+        query : str
+            Search query for wikipedia API.
+
+        Returns
+        -------
+        str
+            Result of the query.
+        """
+        try:
+            wiki = WikipediaAPIWrapper()
+            result = wiki.run(query)
+            return result if result else "No results found"
+        except Exception:
+            return "Wikipedia temporarily unavailable"
 
     def _execute_step(self, plan: list[str], step: str) -> str:
         """

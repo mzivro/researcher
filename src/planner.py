@@ -18,6 +18,7 @@ class Planner:
     planner_prompt_template : str
         System prompt guiding plan generation behavior.
     """
+
     def __init__(self):
         """
         Initialize the Planner with configured LLM and prompt template.

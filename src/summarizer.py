@@ -20,6 +20,7 @@ class Summarizer:
     pdf_file : str or None
         Path to the generated PDF file.
     """
+
     def __init__(self):
         """
         Initialize summarizer with LLM and prompt template.

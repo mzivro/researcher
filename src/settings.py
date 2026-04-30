@@ -1,5 +1,5 @@
+from pydantic import Field, ValidationError
 from pydantic_settings import BaseSettings
-from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -23,13 +23,22 @@ class Settings(BaseSettings):
     openai_summarizer_temperature : float
         Sampling temperature for summarizer model.
     """
+
     openai_api_key: str = Field(..., env="OPENAI_API_KEY")
 
-    openai_planner_model: str = Field(default="gpt-4.1-mini", env="OPENAI_PLANNER_MODEL")
-    openai_planner_temperature: float = Field(default=0.2, env="OPENAI_PLANNER_TEMPERATURE")
+    openai_planner_model: str = Field(
+        default="gpt-4.1-mini", env="OPENAI_PLANNER_MODEL"
+    )
+    openai_planner_temperature: float = Field(
+        default=0.2, env="OPENAI_PLANNER_TEMPERATURE"
+    )
 
-    openai_executor_model: str = Field(default="gpt-4.1-mini", env="OPENAI_EXECUTOR_MODEL")
-    openai_executor_temperature: float = Field(default=0.8, env="OPENAI_EXECUTOR_TEMPERATURE")
+    openai_executor_model: str = Field(
+        default="gpt-4.1-mini", env="OPENAI_EXECUTOR_MODEL"
+    )
+    openai_executor_temperature: float = Field(
+        default=0.8, env="OPENAI_EXECUTOR_TEMPERATURE"
+    )
 
     openai_summarizer_model: str = Field(
         default="gpt-4.1-mini", env="OPENAI_SUMMARIZER_MODEL"
@@ -47,7 +56,13 @@ class Settings(BaseSettings):
         env_file : str
             Path to the environment variables file.
         """
+
         env_file = ".env"
 
 
-settings = Settings()
+try:
+    settings = Settings()
+except ValidationError:
+    raise Exception(
+        "ERROR: No OpenAI API key provided, please enter your API key in .env file"
+    )
