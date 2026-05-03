@@ -19,7 +19,7 @@ class Logger:
         """
         self.enabled = False
 
-    def __call__(self, text: str):
+    def __call__(self, text):
         """
         Log a message to file if logging is enabled.
 

@@ -118,9 +118,9 @@ OPENAI_SUMMARIZER_MODEL=gpt-4.1-mini
 Possibly you can set up models temperatures in `.env`:
 
 ```
-OPENAI_PLANNER_TEMPERATURE=0.2
-OPENAI_EXECUTOR_TEMPERATURE=0.8
-OPENAI_SUMMARIZER_TEMPERATURE=0.2
+OPENAI_PLANNER_TEMPERATURE=0.0
+OPENAI_EXECUTOR_TEMPERATURE=0.0
+OPENAI_SUMMARIZER_TEMPERATURE=0.0
 ```
 
 ---
@@ -156,17 +156,21 @@ You can also write your own plan without generating him.
 
 * No evaluation of answer correctness
 * No retry/failure recovery mechanism
-* Heavy reliance on external APIs
-* Limited control over hallucinations
-* Execution depth constrained (max iterations)
+* Wikipedia, arxiv and dddgs tools may fail due to API limitations
 
 ---
 
 ## Planned Future Improvements
 
 * Scoring/self-reflection system
-* Better hallucinations control
 * Better logging system (like logging tokens etc.)
+* Possibly more tools like wolfram alpha, serpapi etc.
+
+---
+
+## Demo
+
+![Demo](./demo.gif)
 
 ---
 

@@ -1,4 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate
+from prompts import summarizer_prompt_template
 from langchain_openai import ChatOpenAI
 from settings import settings
 from logger import logger
@@ -13,10 +14,10 @@ class Summarizer:
 
     Attributes
     ----------
+    summarizer_prompt : ChatPromptTemplate
+        Prompt template used to generate summaries.
     llm : ChatOpenAI
         Language model used for summarization.
-    summarizer_prompt_template : str
-        Prompt defining formatting constraints for output.
     pdf_file : str or None
         Path to the generated PDF file.
     """
@@ -25,27 +26,22 @@ class Summarizer:
         """
         Initialize summarizer with LLM and prompt template.
         """
+        self.summarizer_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", summarizer_prompt_template),
+                ("user", "Summarize these plan results in markdown:\n{plan}\n"),
+            ]
+        )
+
         self.llm = ChatOpenAI(
             api_key=settings.openai_api_key,
             model=settings.openai_summarizer_model,
             temperature=settings.openai_summarizer_temperature,
         )
 
-        self.summarizer_prompt_template = (
-            "You are a research plan results summarizer.\n"
-            "Output STRICTLY valid GitHub-Flavored Markdown.\n"
-            "Rules:\n"
-            "- Use #, ##, ### headings\n"
-            "- Use proper bullet points (-)\n"
-            "- No HTML\n"
-            "- No trailing incomplete structures\n"
-            "- Close all code blocks\n"
-            "- Do not include explanations outside Markdown\n"
-        )
-
         self.pdf_file = None
 
-    def __call__(self, plan: list[str], plan_name: str):
+    def __call__(self, plan, plan_name):
         """
         Generate a summary and export it to PDF.
 
@@ -56,14 +52,8 @@ class Summarizer:
         plan_name : str
             Name of the plan used for output file naming.
         """
-        summarizer_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", self.summarizer_prompt_template),
-                ("user", "Summarize these plan results in markdown:\n{plan}\n"),
-            ]
-        )
 
-        summarizer = summarizer_prompt | self.llm
+        summarizer = self.summarizer_prompt | self.llm
 
         logger("Calling summarizer")
 
@@ -71,7 +61,7 @@ class Summarizer:
 
         self._make_pdf(summary.content, plan_name)
 
-    def _clean_markdown(self, md: str) -> str:
+    def _clean_markdown(self, md):
         """
         Clean and fix Markdown formatting issues.
 
@@ -94,7 +84,7 @@ class Summarizer:
 
         return md
 
-    def _make_pdf(self, summary: str, plan_name: str):
+    def _make_pdf(self, summary, plan_name):
         """
         Convert Markdown summary to PDF and save files.
 

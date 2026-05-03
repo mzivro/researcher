@@ -1,6 +1,10 @@
 from langchain_community.utilities.wikipedia import WikipediaAPIWrapper
 from langchain_classic.agents import create_react_agent, AgentExecutor
 from langchain_community.agent_toolkits.load_tools import load_tools
+from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
+from langchain_community.utilities import ArxivAPIWrapper
+from langchain_community.tools import ArxivQueryRun
+from prompts import executor_prompt_template
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import Tool
 from langchain_classic import hub
@@ -18,57 +22,74 @@ class Executor:
 
     Attributes
     ----------
-    executor_prompt_template : str
-        Template used to instruct the agent how to execute each step.
     agent_executor : AgentExecutor
         Configured LangChain executor responsible for running the agent.
+    ddg_wrapper : DuckDuckGoSearchAPIWrapper
+        Wrapper for DuckDuckGo search API.
+    wiki_wrapper : WikipediaAPIWrapper
+        Wrapper for Wikipedia API.
+    arxiv_tool_runner : ArxivQueryRun
+        Tool interface for querying arXiv.
     """
 
     def __init__(self):
         """
         Initialize the Executor with LLM, tools, and agent configuration.
         """
-        self.executor_prompt_template = (
-            "You're a seasoned research plan executioner, "
-            "which executes steps of research plans.\n\n"
-            "This is whole plan with results:\n"
-            "{plan}\n\n"
-            "This is current step:\n"
-            "{step}\n\n"
-            "Execute the current step - if step description "
-            "is not understandable, just write 'None'\n"
-            "Make sure to add sources to answer.\n"
-        )
-
         llm = ChatOpenAI(
             api_key=settings.openai_api_key,
             model=settings.openai_executor_model,
             temperature=settings.openai_executor_temperature,
         )
 
-        tools = load_tools(tool_names=["ddg-search", "arxiv", "llm-math"], llm=llm)
+        tools = load_tools(tool_names=["llm-math"], llm=llm)
+
+        # create duckduckgo search tool with safe run
+        self.ddg_wrapper = DuckDuckGoSearchAPIWrapper()
+
+        ddg_tool = Tool(
+            name="ddg-search",
+            func=self._safe_ddg_run,
+            description="Search the web using DuckDuckGo. Input should be a search query.",
+        )
+        tools.append(ddg_tool)
+
+        # create wikipedia tool with safe run
+        self.wiki_wrapper = WikipediaAPIWrapper()
 
         wiki_tool = Tool(
             name="wikipedia",
             func=self._safe_wikipedia_run,
             description="Search Wikipedia for general knowledge. Input should be a search query.",
         )
-
         tools.append(wiki_tool)
 
-        prompt = hub.pull("hwchase17/react")
+        # create arxiv tool with safe run
+        arxiv_wrapper = ArxivAPIWrapper(top_k_results=3)
 
-        agent = create_react_agent(llm, tools, prompt)
+        self.arxiv_tool_runner = ArxivQueryRun(api_wrapper=arxiv_wrapper)
+
+        arxiv_tool = Tool(
+            name="arxiv",
+            func=self._safe_arxiv_run,
+            description="Search scientific papers on arXiv. Input should be a research query.",
+        )
+        tools.append(arxiv_tool)
+
+        # create react agent
+        react_prompt = hub.pull("hwchase17/react")
+
+        agent = create_react_agent(llm, tools, react_prompt)
 
         self.agent_executor = AgentExecutor(
             agent=agent,
             tools=tools,
             verbose=True,
-            max_iterations=4,
+            max_iterations=3,  # executor sometimes falls into endless loops for some reason, better not remove this
             handle_parsing_errors=True,
         )
 
-    def __call__(self, plan: list[str]) -> list[str]:
+    def __call__(self, plan):
         """
         Execute all steps in the provided plan.
 
@@ -94,7 +115,27 @@ class Executor:
 
         return plan_with_results
 
-    def _safe_wikipedia_run(self, query: str) -> str:
+    def _safe_ddg_run(self, query):
+        """
+        Safely executes duckduckgo query with fallbacks.
+
+        Parameters
+        ----------
+        query : str
+            Search query for DuckDuckGo API.
+
+        Returns
+        -------
+        str
+            Result of the query.
+        """
+        try:
+            result = self.ddg_wrapper.run(query)
+            return result if result else "No search query results found"
+        except Exception:
+            return "Search temporarily unavailable"
+
+    def _safe_wikipedia_run(self, query):
         """
         Safely executes wikipedia query with fallbacks.
 
@@ -109,13 +150,32 @@ class Executor:
             Result of the query.
         """
         try:
-            wiki = WikipediaAPIWrapper()
-            result = wiki.run(query)
-            return result if result else "No results found"
+            result = self.wiki_wrapper.run(query)
+            return result if result else "No wikipedia query results found"
         except Exception:
             return "Wikipedia temporarily unavailable"
 
-    def _execute_step(self, plan: list[str], step: str) -> str:
+    def _safe_arxiv_run(self, query):
+        """
+        Safely executes arxiv query with fallbacks.
+
+        Parameters
+        ----------
+        query : str
+            Search query for arxiv API.
+
+        Returns
+        -------
+        str
+            Result of the query.
+        """
+        try:
+            result = self.arxiv_tool_runner.run(query)
+            return result if result else "No arXiv query results found"
+        except Exception:
+            return "arXiv temporarily unavailable"
+
+    def _execute_step(self, plan, step):
         """
         Execute a single step of the plan.
 
@@ -131,8 +191,8 @@ class Executor:
         str
             Step description combined with execution result.
         """
-        input_ = self.executor_prompt_template.format(
-            plan="\nSTEP: ".join(plan), step=step
+        input_ = executor_prompt_template.format(
+            plan="STEP: " + "\nSTEP: ".join(plan), step=step
         )
 
         logger("Passed prompt to executor: " + input_)

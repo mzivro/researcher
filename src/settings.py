@@ -30,21 +30,21 @@ class Settings(BaseSettings):
         default="gpt-4.1-mini", env="OPENAI_PLANNER_MODEL"
     )
     openai_planner_temperature: float = Field(
-        default=0.2, env="OPENAI_PLANNER_TEMPERATURE"
+        default=0.0, env="OPENAI_PLANNER_TEMPERATURE"
     )
 
     openai_executor_model: str = Field(
         default="gpt-4.1-mini", env="OPENAI_EXECUTOR_MODEL"
     )
     openai_executor_temperature: float = Field(
-        default=0.8, env="OPENAI_EXECUTOR_TEMPERATURE"
+        default=0.0, env="OPENAI_EXECUTOR_TEMPERATURE"
     )
 
     openai_summarizer_model: str = Field(
         default="gpt-4.1-mini", env="OPENAI_SUMMARIZER_MODEL"
     )
     openai_summarizer_temperature: float = Field(
-        default=0.2, env="OPENAI_SUMMARIZER_TEMPERATURE"
+        default=0.0, env="OPENAI_SUMMARIZER_TEMPERATURE"
     )
 
     class Config:
