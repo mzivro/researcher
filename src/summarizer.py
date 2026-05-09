@@ -3,7 +3,9 @@ from prompts import summarizer_prompt_template
 from langchain_openai import ChatOpenAI
 from settings import settings
 from logger import logger
+from pathlib import Path
 
+import tempfile
 import pypandoc
 import os
 
@@ -18,8 +20,8 @@ class Summarizer:
         Prompt template used to generate summaries.
     llm : ChatOpenAI
         Language model used for summarization.
-    pdf_file : str or None
-        Path to the generated PDF file.
+    pdf_bytes : str or None
+        Path to the generated PDF temporary file.
     """
 
     def __init__(self):
@@ -39,9 +41,9 @@ class Summarizer:
             temperature=settings.openai_summarizer_temperature,
         )
 
-        self.pdf_file = None
+        self.pdf_bytes = None
 
-    def __call__(self, plan, plan_name):
+    def __call__(self, plan):
         """
         Generate a summary and export it to PDF.
 
@@ -49,8 +51,6 @@ class Summarizer:
         ----------
         plan : list of str
             Executed plan steps including results.
-        plan_name : str
-            Name of the plan used for output file naming.
         """
 
         summarizer = self.summarizer_prompt | self.llm
@@ -59,7 +59,7 @@ class Summarizer:
 
         summary = summarizer.invoke({"plan": "\nSTEP: ".join(plan)})
 
-        self._make_pdf(summary.content, plan_name)
+        self._make_pdf(summary.content)
 
     def _clean_markdown(self, md):
         """
@@ -84,7 +84,7 @@ class Summarizer:
 
         return md
 
-    def _make_pdf(self, summary, plan_name):
+    def _make_pdf(self, summary):
         """
         Convert Markdown summary to PDF and save files.
 
@@ -92,28 +92,21 @@ class Summarizer:
         ----------
         summary : str
             Markdown-formatted summary.
-        plan_name : str
-            Name used for output file naming.
         """
-        os.makedirs("results", exist_ok=True)
-
-        self.pdf_file = os.path.join("results", f"{plan_name} Result.pdf")
-        md_file = os.path.join("results", f"{plan_name} Result.md")
-
         summary = self._clean_markdown(summary)
 
-        with open(md_file, "w", encoding="utf-8") as file:
-            file.write(summary)
-
         try:
-            pypandoc.convert_text(
-                summary,
-                "pdf",
-                format="md",
-                outputfile=self.pdf_file,
-                extra_args=["--standalone", "--pdf-engine=xelatex"],
-            )
+            with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+                pypandoc.convert_text(
+                    summary,
+                    "pdf",
+                    format="md",
+                    outputfile=tmp.name,
+                    extra_args=["--standalone", "--pdf-engine=xelatex"],
+                )
+
+                self.pdf_bytes = Path(tmp.name).read_bytes()
         except RuntimeError as e:
             logger(f"PDF generation failed: {e}")
 
-        logger(f"output file created - {self.pdf_file}")
+        logger(f"output file created")

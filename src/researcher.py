@@ -118,9 +118,10 @@ class Researcher:
         if st.button("Execute plan", width="stretch"):
             logger("Executing plan - " + st.session_state.plan_name)
 
-            st.session_state.plan_with_results = st.session_state.executor(
-                st.session_state.plan.Plan.tolist()
-            )
+            with st.spinner("Executing plan..."):
+                st.session_state.plan_with_results = st.session_state.executor(
+                    st.session_state.plan.Plan.tolist()
+                )
 
             st.session_state.ready = True
 
@@ -133,8 +134,15 @@ class Researcher:
         if st.session_state.ready:
             logger("Summarizing engaged")
 
-            st.session_state.summarizer(
-                st.session_state.plan_with_results, st.session_state.plan_name
+            with st.spinner("Summarizing..."):
+                st.session_state.summarizer(st.session_state.plan_with_results)
+
+            st.download_button(
+                "Download report",
+                width="stretch",
+                data=st.session_state.summarizer.pdf_bytes,
+                file_name=f"{st.session_state.plan_name} Result.pdf",
+                mime="application/pdf",
             )
 
-            pdf_viewer(st.session_state.summarizer.pdf_file)
+            pdf_viewer(st.session_state.summarizer.pdf_bytes)
