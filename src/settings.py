@@ -79,7 +79,7 @@ class Settings(BaseSettings):
 
         Returns
         -------
-        str
+        float
             Validated planner temperature.
 
         Raises
@@ -103,7 +103,7 @@ class Settings(BaseSettings):
 
         Returns
         -------
-        str
+        float
             Validated executor temperature.
 
         Raises
@@ -127,7 +127,7 @@ class Settings(BaseSettings):
 
         Returns
         -------
-        str
+        float
             Validated summarizer temperature.
 
         Raises

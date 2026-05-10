@@ -131,6 +131,13 @@ OPENAI_SUMMARIZER_TEMPERATURE=0.0
 streamlit run src/app.py
 ```
 
+Alternatively run via Docker
+
+```bash
+docker build -t ai-researcher .
+docker run -p 8501:8501 --env-file .env ai-researcher
+```
+
 ### Workflow
 
 1. Enter a task
